@@ -1,4 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Data.HashFunction;
+using System.IO;
+using System.Linq;
+using System.Net;
 using System.Text.RegularExpressions;
 
 namespace PokemonGo.RocketAPI.Helpers
@@ -10,6 +15,16 @@ namespace PokemonGo.RocketAPI.Helpers
             var bytes = BitConverter.GetBytes(value);
             return BitConverter.ToUInt64(bytes, 0);
         }
+
+        public static long GetTime(bool ms = false)
+        {
+            var timeSpan = DateTime.UtcNow - new DateTime(1970, 1, 1);
+
+            if (ms)
+                return (long)Math.Round(timeSpan.TotalMilliseconds);
+            return (long)Math.Round(timeSpan.TotalSeconds);
+        }
+
         public static class HtmlRemoval
         {
             /// <summary>
@@ -64,5 +79,32 @@ namespace PokemonGo.RocketAPI.Helpers
                 return new string(array, 0, arrayIndex);
             }
         }
+
+        public static int GenerateLocation1(byte[] locationBytes, byte[] authTicket)
+        {
+            // Concat done before calls
+            
+            //byte[] locationBytes = BitConverter.GetBytes(lat).Reverse()
+            //     .Concat(BitConverter.GetBytes(lng).Reverse())
+            //     .Concat(BitConverter.GetBytes(alt).Reverse()).ToArray();
+
+            return (int) HashBuilder.Hash32Salt(locationBytes, HashBuilder.Hash32(authTicket));
+        }
+
+        public static int GenerateLocation2(byte[] locationBytes)
+        {
+            // Concat done before calls
+            //byte[] locationBytes = BitConverter.GetBytes(lat).Reverse()
+            //     .Concat(BitConverter.GetBytes(lng).Reverse())
+            //     .Concat(BitConverter.GetBytes(alt).Reverse()).ToArray();
+
+            return (int) HashBuilder.Hash32(locationBytes);
+        }
+
+        public static ulong GenerateRequestHash(byte[] requestBytes, byte[] authTicket)
+        {
+            return HashBuilder.Hash64Salt64(requestBytes, HashBuilder.Hash64(authTicket));
+        }
+
     }
 }

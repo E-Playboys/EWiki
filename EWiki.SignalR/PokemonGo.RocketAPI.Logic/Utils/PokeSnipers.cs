@@ -1,44 +1,43 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Net.Http;
 using Newtonsoft.Json;
 using POGOProtos.Enums;
 using System.Linq;
-using POGOProtos.Networking.Responses;
-using POGOProtos.Inventory.Item;
 using System.Threading;
+using PokemonGo.RocketAPI;
+using PokemonGo.RocketAPI.HttpClient;
 
-namespace PokemonGo.RocketAPI.Logic.Utils
+namespace PokeMaster.Logic.Utils
 {
     class PokeSnipers
     {
-        HttpClient.PokemonHttpClient _httpClient;
+        PokemonHttpClient _httpClient;
         private List<spottedPokeSni> _newSpotted;
         private List<spottedPokeSni> _alreadySpotted;
 
         public PokeSnipers()
         {
-            _httpClient = new HttpClient.PokemonHttpClient();
+            _httpClient = new PokemonHttpClient();
             _newSpotted = new List<spottedPokeSni>();
             _alreadySpotted = new List<spottedPokeSni>();
         }
 
-        public async Task<List<spottedPokeSni>> CapturarPokemon()
+        public List<spottedPokeSni> CapturarPokemon()
         {
             //https://github.com/xxxx0107/PokeSniper2/blob/a8f40c29b531e33c7e0342b8a1b8a06ec1850608/PogoLocationFeeder/Repository/PokeSniperRarePokemonRepository.cs
             PokemonId idPoke = 0;
             _newSpotted.Clear();
             ClearAlreadySpottedByTime();
 
-            HttpResponseMessage response = await _httpClient.GetAsync("http://pokesnipers.com/api/v1/pokemon.json");
+            HttpResponseMessage response =  _httpClient.GetAsync("http://pokesnipers.com/api/v1/pokemon.json").Result;
             HttpContent content = response.Content;
-            string result = await content.ReadAsStringAsync();
+            string result = content.ReadAsStringAsync().Result;
 
-            dynamic Snipers = JsonConvert.DeserializeObject(result);
-            Logger.ColoredConsoleWrite(ConsoleColor.Yellow, "Looking for Pokemons to snipe....");
             try
             {
+                dynamic Snipers = JsonConvert.DeserializeObject(result);
+                Logger.ColoredConsoleWrite(ConsoleColor.Yellow, "Looking for Pokemons to snipe....");
                 for (int i = 0; Snipers.results[i].id > 0; i++)
                 {
                     idPoke = PokemonParser.ParsePokemon("" + Snipers.results[i].name);
@@ -55,9 +54,9 @@ namespace PokemonGo.RocketAPI.Logic.Utils
                     _alreadySpotted.Add(new spottedPokeSni((Int32)idPoke, (Double)coords[0], (Double)coords[1], (Int32)DateTimeToUnixTimestamp((DateTime)Snipers.results[i].until), (Int32)idPoke, (Int32)VerTipo("" + Snipers.results[i].rarity)));
                 }
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                //Logger.ColoredConsoleWrite(ConsoleColor.Red, "Error PokeSnipers: \n" + e.Message + "\n" +  e.HelpLink);
+                Logger.ColoredConsoleWrite(ConsoleColor.Red, "Error PokeSnipers: \n" + ex.Message + "\n" +  ex.HelpLink);
             }
 
             return _newSpotted;
@@ -116,8 +115,8 @@ namespace PokemonGo.RocketAPI.Logic.Utils
         }
 
         /*
-            foreach(spottedPokeSni p in await _pokeSnipers.CapturarPokemon()){ 
-                await _pokeSnipers.CapturarSniper(p, _clientSettings, _client);
+            foreach(spottedPokeSni p in await _pokeSnipers.CapturarPokemon().ConfigureAwait(false)){ 
+                await _pokeSnipers.CapturarSniper(p, _botSettings, _client).ConfigureAwait(false);
             }
             StringUtils.CheckKillSwitch(true);
         */

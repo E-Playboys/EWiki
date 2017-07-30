@@ -16,48 +16,48 @@ namespace PokemonGo.RocketAPI.Rpc
         public Download(Client client) : base(client)
         {
         }
-        public async Task<DownloadSettingsResponse> GetSettings()
+        public DownloadSettingsResponse GetSettings()
         {
             var message = new DownloadSettingsMessage
             {
                 Hash = "b8fa9757195897aae92c53dbcf8a60fb3d86d745"
             };
             
-            return await PostProtoPayload<Request, DownloadSettingsResponse>(RequestType.DownloadSettings, message);
+            return  PostProtoPayload<Request, DownloadSettingsResponse>(RequestType.DownloadSettings, message);
         }
 
-        public async Task<DownloadItemTemplatesResponse> GetItemTemplates()
+        public DownloadItemTemplatesResponse GetItemTemplates()
         {
-            return await PostProtoPayload<Request, DownloadItemTemplatesResponse>(RequestType.DownloadItemTemplates, new DownloadItemTemplatesMessage());
+            return  PostProtoPayload<Request, DownloadItemTemplatesResponse>(RequestType.DownloadItemTemplates, new DownloadItemTemplatesMessage());
         }
 
-        public async Task<DownloadRemoteConfigVersionResponse> GetRemoteConfigVersion(uint appVersion, string deviceManufacturer, string deviceModel, string locale, Platform platform)
+        public DownloadRemoteConfigVersionResponse GetRemoteConfigVersion(uint appVersion, string deviceManufacturer, string deviceModel, string locale, Platform platform)
         {
-            return await PostProtoPayload<Request, DownloadRemoteConfigVersionResponse>(RequestType.DownloadRemoteConfigVersion, new DownloadRemoteConfigVersionMessage()
+            return  PostProtoPayload<Request, DownloadRemoteConfigVersionResponse>(RequestType.DownloadRemoteConfigVersion, new DownloadRemoteConfigVersionMessage()
             {
                 AppVersion = appVersion,
                 DeviceManufacturer = deviceManufacturer,
                 DeviceModel = deviceModel,
-                Locale = locale,
                 Platform = platform
             });
+            //TODO: add Locale = locale,
         }
 
-        public async Task<GetAssetDigestResponse> GetAssetDigest(uint appVersion, string deviceManufacturer, string deviceModel, string locale, Platform platform)
+        public GetAssetDigestResponse GetAssetDigest(uint appVersion, string deviceManufacturer, string deviceModel, string locale, Platform platform)
         {
-            return await PostProtoPayload<Request, GetAssetDigestResponse>(RequestType.GetAssetDigest, new GetAssetDigestMessage()
+            return  PostProtoPayload<Request, GetAssetDigestResponse>(RequestType.GetAssetDigest, new GetAssetDigestMessage()
             {
                 AppVersion = appVersion,
                 DeviceManufacturer = deviceManufacturer,
                 DeviceModel = deviceModel,
-                Locale = locale,
                 Platform = platform
             });
+            //TODO: add Locale = locale,
         }
 
-        public async Task<GetDownloadUrlsResponse> GetDownloadUrls(IEnumerable<string> assetIds)
+        public GetDownloadUrlsResponse GetDownloadUrls(IEnumerable<string> assetIds)
         {
-            return await PostProtoPayload<Request, GetDownloadUrlsResponse>(RequestType.GetDownloadUrls, new GetDownloadUrlsMessage()
+            return  PostProtoPayload<Request, GetDownloadUrlsResponse>(RequestType.GetDownloadUrls, new GetDownloadUrlsMessage()
             {
                 AssetId = { assetIds }
             });

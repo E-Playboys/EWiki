@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Chrome;
 
 namespace EWiki.Sniper.Controllers
 {
@@ -13,7 +13,19 @@ namespace EWiki.Sniper.Controllers
         [HttpGet]
         public IEnumerable<string> Get()
         {
-            return new string[] { "value1", "value2" };
+            IWebDriver webDriver = new ChromeDriver();
+            webDriver.Url = "http://pokezz.com";
+            webDriver.Navigate();
+            var str = new List<string>();
+            var elements = webDriver.FindElements(By.ClassName("collection-item"));
+            foreach(var element in elements)
+            {
+                var name = element.FindElement(By.ClassName("avatar-text")).Text;
+                var location = element.FindElement(By.ClassName("title")).Text;
+                str.Add($"{name} - {location}");
+            }
+            
+            return str;
         }
 
         // GET api/values/5

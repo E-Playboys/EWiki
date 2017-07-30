@@ -1,25 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
+﻿#region using directives
+
+using System;
 using System.Linq;
-using System.Net.Http;
-using System.Text;
+using System.Collections.Generic;
 using System.Threading.Tasks;
-using Google.Protobuf.Collections;
-using PokemonGo.RocketAPI;
-using PokemonGo.RocketAPI.Rpc;
+using Google.Protobuf;
 using POGOProtos.Data.Battle;
 using POGOProtos.Inventory.Item;
 using POGOProtos.Networking.Requests;
 using POGOProtos.Networking.Requests.Messages;
 using POGOProtos.Networking.Responses;
+using PokemonGo.RocketAPI.Exceptions;
+using PokemonGo.RocketAPI.Helpers;
+
+#endregion
 
 namespace PokemonGo.RocketAPI.Rpc
 {
     public class Fort : BaseRpc
     {
-        public Fort(Client client) : base(client) { }
+        public Fort(Client client) : base(client)
+        {
+        }
 
-        public async Task<FortDetailsResponse> GetFort(string fortId, double fortLatitude, double fortLongitude)
+        public FortDetailsResponse GetFortOnly(string fortId, double fortLatitude, double fortLongitude)
         {
             var message = new FortDetailsMessage
             {
@@ -27,108 +31,190 @@ namespace PokemonGo.RocketAPI.Rpc
                 Latitude = fortLatitude,
                 Longitude = fortLongitude
             };
-            
-            return await PostProtoPayload<Request, FortDetailsResponse>(RequestType.FortDetails, message);
+
+            return PostProtoPayload<Request, FortDetailsResponse>(RequestType.FortDetails, message);
+        }
+        
+        public async Task<FortDetailsResponse> GetFort(string fortId, double fortLatitude, double fortLongitude)
+        {
+            var request = new Request
+            {
+                RequestType = RequestType.FortDetails,
+                RequestMessage = ((IMessage)new FortDetailsMessage
+                {
+                    FortId = fortId,
+                    Latitude = fortLatitude,
+                    Longitude = fortLongitude
+                }).ToByteString()
+            };
+
+            return await PostProtoPayloadCommonR<Request, FortDetailsResponse>(request).ConfigureAwait(false);
         }
 
-        public async Task<FortSearchResponse> SearchFort(string fortId, double fortLat, double fortLng)
+        public FortSearchResponse SearchFortOnly(string fortId, double fortLat, double fortLng)
         {
             var message = new FortSearchMessage
             {
                 FortId = fortId,
                 FortLatitude = fortLat,
                 FortLongitude = fortLng,
-                PlayerLatitude = _client.CurrentLatitude, 
-                PlayerLongitude = _client.CurrentLongitude
+                PlayerLatitude = Client.CurrentLatitude,
+                PlayerLongitude = Client.CurrentLongitude
             };
 
-            return await PostProtoPayload<Request, FortSearchResponse>(RequestType.FortSearch, message);
+            return PostProtoPayload<Request, FortSearchResponse>(RequestType.FortSearch, message);
+        }
+        
+        public async Task<FortSearchResponse> SearchFort(string fortId, double fortLat, double fortLng)
+        {
+            var request = new Request
+            {
+                RequestType = RequestType.FortSearch,
+                RequestMessage = ((IMessage)new FortSearchMessage
+                {
+                    FortId = fortId,
+                    FortLatitude = fortLat,
+                    FortLongitude = fortLng,
+                    PlayerLatitude = Client.CurrentLatitude,
+                    PlayerLongitude = Client.CurrentLongitude
+                }).ToByteString()
+            };
+
+            return await PostProtoPayloadCommonR<Request, FortSearchResponse>(request).ConfigureAwait(false);
         }
 
-        public async Task<AddFortModifierResponse> AddFortModifier(string fortId, ItemId modifierType)
+        public AddFortModifierResponse AddFortModifier(string fortId, ItemId modifierType)
         {
-            var message = new AddFortModifierMessage()
+            var message = new AddFortModifierMessage
             {
                 FortId = fortId,
                 ModifierType = modifierType,
-                PlayerLatitude = _client.CurrentLatitude,
-                PlayerLongitude = _client.CurrentLongitude
+                PlayerLatitude = Client.CurrentLatitude,
+                PlayerLongitude = Client.CurrentLongitude
             };
 
-            return await PostProtoPayload<Request, AddFortModifierResponse>(RequestType.AddFortModifier, message);
+            return PostProtoPayload<Request, AddFortModifierResponse>(RequestType.AddFortModifier, message);
         }
 
-        public async Task<AttackGymResponse> AttackGym(string fortId, string battleId, List<BattleAction> battleActions, BattleAction lastRetrievedAction)
+        public AttackGymResponse AttackGym(string fortId, string battleId, List<BattleAction> battleActions,
+            BattleAction lastRetrievedAction)
         {
-            var message = new AttackGymMessage()
+            var message = new AttackGymMessage
             {
                 BattleId = battleId,
                 GymId = fortId,
-                LastRetrievedActions = lastRetrievedAction,
-                PlayerLatitude = _client.CurrentLatitude,
-                PlayerLongitude = _client.CurrentLongitude,
+                LastRetrievedAction = lastRetrievedAction,
+                PlayerLatitude = Client.CurrentLatitude,
+                PlayerLongitude = Client.CurrentLongitude,
                 AttackActions = { battleActions }
             };
 
             message.AttackActions.AddRange(battleActions);
 
-            return await PostProtoPayload<Request, AttackGymResponse>(RequestType.AttackGym, message);
+            return PostProtoPayload<Request, AttackGymResponse>(RequestType.AttackGym, message);
         }
 
-        public async Task<FortDeployPokemonResponse> FortDeployPokemon(string fortId, ulong pokemonId)
+        /* Obsoleted call ? */
+        public FortDeployPokemonResponse FortDeployPokemon(string fortId, ulong pokemonId)
         {
-            var message = new FortDeployPokemonMessage()
+            var message = new FortDeployPokemonMessage
             {
                 PokemonId = pokemonId,
                 FortId = fortId,
-                PlayerLatitude = _client.CurrentLatitude,
-                PlayerLongitude = _client.CurrentLongitude
+                PlayerLatitude = Client.CurrentLatitude,
+                PlayerLongitude = Client.CurrentLongitude
             };
 
-            return await PostProtoPayload<Request, FortDeployPokemonResponse>(RequestType.FortDeployPokemon, message);
+            return PostProtoPayload<Request, FortDeployPokemonResponse>(RequestType.FortDeployPokemon, message);
+        }
+        
+        public GymFeedPokemonResponse GymFeedPokemon(string fortId, ulong pokemonId)
+        {
+            var message = new GymFeedPokemonMessage
+            {
+                PokemonId = pokemonId,
+                GymId = fortId,
+                PlayerLatDegrees = Client.CurrentLatitude,
+                PlayerLngDegrees = Client.CurrentLongitude
+            };
+
+            return PostProtoPayload<Request, GymFeedPokemonResponse>(RequestType.GymFeedPokemon, message);
         }
 
-        public async Task<FortRecallPokemonResponse> FortRecallPokemon(string fortId, ulong pokemonId)
+        public FortRecallPokemonResponse FortRecallPokemon(string fortId, ulong pokemonId)
         {
-            var message = new FortRecallPokemonMessage()
+            var message = new FortRecallPokemonMessage
             {
                 PokemonId = pokemonId,
                 FortId = fortId,
-                PlayerLatitude = _client.CurrentLatitude,
-                PlayerLongitude = _client.CurrentLongitude
+                PlayerLatitude = Client.CurrentLatitude,
+                PlayerLongitude = Client.CurrentLongitude
             };
 
-            return await PostProtoPayload<Request, FortRecallPokemonResponse>(RequestType.FortRecallPokemon, message);
+            return PostProtoPayload<Request, FortRecallPokemonResponse>(RequestType.FortRecallPokemon, message);
         }
 
-        public async Task<GetGymDetailsResponse> GetGymDetails(string gymId, double gymLat, double gymLng)
+
+        /* Obosoleted call
+        public GetGymDetailsResponse GetGymDetails(string gymId, double gymLat, double gymLng)
         {
-            var message = new GetGymDetailsMessage()
+            var message = new GetGymDetailsMessage
             {
                 GymId = gymId,
                 GymLatitude = gymLat,
                 GymLongitude = gymLng,
-                PlayerLatitude = _client.CurrentLatitude,
-                PlayerLongitude = _client.CurrentLongitude
+                PlayerLatitude = Client.CurrentLatitude,
+                PlayerLongitude = Client.CurrentLongitude
             };
 
-            return await PostProtoPayload<Request, GetGymDetailsResponse>(RequestType.GetGymDetails, message);
+            return PostProtoPayload<Request, GetGymDetailsResponse>(RequestType.GetGymDetails, message);
         }
+        */
 
-        public async Task<StartGymBattleResponse> StartGymBattle(string gymId, ulong defendingPokemonId, IEnumerable<ulong> attackingPokemonIds)
+        public GymGetInfoResponse GymGetInfo(string gymId, double gymLat, double gymLng)
         {
-            var message = new StartGymBattleMessage()
+            var message = new GymGetInfoMessage
             {
                 GymId = gymId,
-                DefendingPokemonId = defendingPokemonId,
-                AttackingPokemonIds = { attackingPokemonIds},
-                PlayerLatitude = _client.CurrentLatitude,
-                PlayerLongitude = _client.CurrentLongitude
+                GymLatDegrees = gymLat,
+                GymLngDegrees = gymLng,
+                PlayerLatDegrees = Client.CurrentLatitude,
+                PlayerLngDegrees = Client.CurrentLongitude
             };
 
-            return await PostProtoPayload<Request, StartGymBattleResponse>(RequestType.StartGymBattle, message);
+            return PostProtoPayload<Request, GymGetInfoResponse>(RequestType.GymGetInfo, message);
         }
 
+        public StartGymBattleResponse StartGymBattleOnly(string gymId, ulong defendingPokemonId,
+            IEnumerable<ulong> attackingPokemonIds)
+        {
+            var message = new StartGymBattleMessage ();
+            message.GymId = gymId;
+            message.DefendingPokemonId = defendingPokemonId;
+            message.AttackingPokemonIds.Add(attackingPokemonIds);
+            message.PlayerLatitude = Client.CurrentLatitude;
+            message.PlayerLongitude = Client.CurrentLongitude;
 
+            return PostProtoPayload<Request, StartGymBattleResponse>(RequestType.StartGymBattle, message);
+        }
+        
+        public async Task<StartGymBattleResponse> StartGymBattle(string gymId, ulong defendingPokemonId,
+            IEnumerable<ulong> attackingPokemonIds)
+        {
+            var request = new Request
+            {
+                RequestType = RequestType.StartGymBattle,
+                RequestMessage = ((IMessage)new StartGymBattleMessage
+                {
+                    GymId = gymId,
+                    DefendingPokemonId = defendingPokemonId,
+                    AttackingPokemonIds = { attackingPokemonIds },
+                    PlayerLatitude = Client.CurrentLatitude,
+                    PlayerLongitude = Client.CurrentLongitude
+                }).ToByteString()
+            };
+            return await PostProtoPayloadCommonR<Request, StartGymBattleResponse>(request).ConfigureAwait(false);
+
+        }
     }
 }

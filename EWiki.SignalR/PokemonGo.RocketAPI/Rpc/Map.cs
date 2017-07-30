@@ -1,14 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+#region using directives
+
+using System;
 using System.Threading.Tasks;
+using System.Linq;
 using Google.Protobuf;
-using PokemonGo.RocketAPI.Extensions;
+using POGOProtos.Map;
+using PokemonGo.RocketAPI.Exceptions;
 using PokemonGo.RocketAPI.Helpers;
 using POGOProtos.Networking.Requests;
 using POGOProtos.Networking.Requests.Messages;
+using POGOProtos.Networking.Envelopes;
 using POGOProtos.Networking.Responses;
+
+#endregion
 
 namespace PokemonGo.RocketAPI.Rpc
 {
@@ -18,65 +22,55 @@ namespace PokemonGo.RocketAPI.Rpc
         {
         }
 
-        public async Task<Tuple<GetMapObjectsResponse, GetHatchedEggsResponse, GetInventoryResponse, CheckAwardedBadgesResponse, DownloadSettingsResponse>> GetMapObjects()
+        private DateTime _lastGetMapRequest;
+        private const int _minSecondsBetweenMapCalls = 20;
+        
+        public GetMapObjectsResponse _cachedGetMapResponse;
+
+        public async
+            Task
+                <GetMapObjectsResponse> GetMapObjects(bool forceRequest = false)
         {
-            #region Messages
+            // In case we did last _minSecondsBetweenMapCalls before, we return the cached response
+            if (_lastGetMapRequest.AddSeconds(_minSecondsBetweenMapCalls).Ticks > DateTime.UtcNow.Ticks 
+                && !forceRequest
+                && _cachedGetMapResponse!=null
+               )
+                return _cachedGetMapResponse;
+
+            var cellIds = S2Helper.GetNearbyCellIds(Client.CurrentLongitude, Client.CurrentLatitude).ToArray();
+
+            var sinceTimeMs = new long[cellIds.Length];
+            for  (var index = 0; index < cellIds.Length; index++)
+               sinceTimeMs[index] = 0;
 
             var getMapObjectsMessage = new GetMapObjectsMessage
             {
-                CellId = { S2Helper.GetNearbyCellIds(_client.CurrentLongitude, _client.CurrentLatitude) },
-                SinceTimestampMs = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-                Latitude = _client.CurrentLatitude,
-                Longitude = _client.CurrentLongitude
-            };
-            var getHatchedEggsMessage = new GetHatchedEggsMessage();
-            var getInventoryMessage = new GetInventoryMessage
-            {
-                LastTimestampMs = DateTime.UtcNow.ToUnixTime()
-            };
-            var checkAwardedBadgesMessage = new CheckAwardedBadgesMessage();
-            var downloadSettingsMessage = new DownloadSettingsMessage
-            {
-                Hash = "b8fa9757195897aae92c53dbcf8a60fb3d86d745"
+                CellId = {cellIds},
+                SinceTimestampMs = {sinceTimeMs},
+                Latitude = Client.CurrentLatitude,
+                Longitude = Client.CurrentLongitude
             };
 
-            #endregion
-
-            var request = RequestBuilder.GetRequestEnvelope(
-                new Request
-                {
-                    RequestType = RequestType.GetMapObjects,
-                    RequestMessage = getMapObjectsMessage.ToByteString()
-                },
-                new Request
-                {
-                    RequestType = RequestType.GetHatchedEggs,
-                    RequestMessage = getHatchedEggsMessage.ToByteString()
-                }, new Request
-                {
-                    RequestType = RequestType.GetInventory,
-                    RequestMessage = getInventoryMessage.ToByteString()
-                }, new Request
-                {
-                    RequestType = RequestType.CheckAwardedBadges,
-                    RequestMessage = checkAwardedBadgesMessage.ToByteString()
-                }, new Request
-                {
-                    RequestType = RequestType.DownloadSettings,
-                    RequestMessage = downloadSettingsMessage.ToByteString()
-                });
-            return await PostProtoPayload<Request, GetMapObjectsResponse, GetHatchedEggsResponse, GetInventoryResponse, CheckAwardedBadgesResponse, DownloadSettingsResponse>(request);
+            var request = new Request
+            {
+                RequestType = RequestType.GetMapObjects,
+                RequestMessage = getMapObjectsMessage.ToByteString()
+            };
+            _cachedGetMapResponse = await PostProtoPayloadCommonR<Request, GetMapObjectsResponse>(request).ConfigureAwait(false);
+            _lastGetMapRequest = DateTime.UtcNow;
+            return _cachedGetMapResponse;
         }
 
-        public async Task<GetIncensePokemonResponse> GetIncensePokemons()
+        public GetIncensePokemonResponse GetIncensePokemons()
         {
-            var message = new GetIncensePokemonMessage()
+            var message = new GetIncensePokemonMessage
             {
-                PlayerLatitude = _client.CurrentLatitude,
-                PlayerLongitude = _client.CurrentLongitude
+                PlayerLatitude = Client.CurrentLatitude,
+                PlayerLongitude = Client.CurrentLongitude
             };
 
-            return await PostProtoPayload<Request, GetIncensePokemonResponse>(RequestType.GetIncensePokemon, message);
+            return  PostProtoPayload<Request, GetIncensePokemonResponse>(RequestType.GetIncensePokemon, message);
         }
     }
 }

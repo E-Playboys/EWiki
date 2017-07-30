@@ -72,12 +72,12 @@
         "../packages/System.Data.HashFunction.Interfaces.1.0.0.2/lib/net45/System.Data.HashFunction.Interfaces.dll": {},
         "../packages/System.Data.HashFunction.xxHash.1.8.2.2/lib/net45/System.Data.HashFunction.xxHash.dll": {},
         "../packages/System.Runtime.InteropServices.RuntimeInformation.4.0.0/lib/net45/System.Runtime.InteropServices.RuntimeInformation.dll": {},
-        "D:/My Projects/EWiki/EWiki.SignalR//packages/C5.2.4.5947.17249/lib/net45/C5.dll": {},
-        "D:/My Projects/EWiki/EWiki.SignalR//packages/EnterpriseLibrary.TransientFaultHandling.6.0.1304.0/lib/portable-net45+win+wp8/Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.dll": {},
-        "D:/My Projects/EWiki/EWiki.SignalR//packages/EnterpriseLibrary.TransientFaultHandling.Data.6.0.1304.1/lib/NET45/Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.Data.dll": {},
-        "D:/My Projects/EWiki/EWiki.SignalR//packages/Microsoft.AspNet.WebApi.Client.5.2.3/lib/net45/System.Net.Http.Formatting.dll": {},
-        "D:/My Projects/EWiki/EWiki.SignalR//packages/Newtonsoft.Json.9.0.1/lib/net45/Newtonsoft.Json.dll": {},
-        "D:/My Projects/EWiki/EWiki.SignalR//packages/VarintBitConverter.1.0.0.0/lib/Net40/System.VarintBitConverter.dll": {},
+        "C:/Users/troyv/Documents/SourceTree/EWiki/EWiki.SignalR//packages/C5.2.4.5947.17249/lib/net45/C5.dll": {},
+        "C:/Users/troyv/Documents/SourceTree/EWiki/EWiki.SignalR//packages/EnterpriseLibrary.TransientFaultHandling.6.0.1304.0/lib/portable-net45+win+wp8/Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.dll": {},
+        "C:/Users/troyv/Documents/SourceTree/EWiki/EWiki.SignalR//packages/EnterpriseLibrary.TransientFaultHandling.Data.6.0.1304.1/lib/NET45/Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.Data.dll": {},
+        "C:/Users/troyv/Documents/SourceTree/EWiki/EWiki.SignalR//packages/Microsoft.AspNet.WebApi.Client.5.2.3/lib/net45/System.Net.Http.Formatting.dll": {},
+        "C:/Users/troyv/Documents/SourceTree/EWiki/EWiki.SignalR//packages/Newtonsoft.Json.9.0.1/lib/net45/Newtonsoft.Json.dll": {},
+        "C:/Users/troyv/Documents/SourceTree/EWiki/EWiki.SignalR//packages/VarintBitConverter.1.0.0.0/lib/Net40/System.VarintBitConverter.dll": {},
         "bin/Debug/Pokemon.Go.Rocket.API.dll": {}
       },
       "contentFiles": {

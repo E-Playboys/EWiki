@@ -1,56 +1,63 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Google.Protobuf;
+using Google.Protobuf.Collections;
+using POGOProtos.Enums;
 using POGOProtos.Networking.Requests;
 using POGOProtos.Networking.Requests.Messages;
 using POGOProtos.Networking.Responses;
+using PokemonGo.RocketAPI.Exceptions;
+using PokemonGo.RocketAPI.Helpers;
 
 namespace PokemonGo.RocketAPI.Rpc
 {
     public class Misc : BaseRpc
     {
-        public Misc(Client client) : base(client)
+        public Misc(Client client)
+            : base(client)
         {
         }
 
-
-        public async Task<ClaimCodenameResponse> ClaimCodename(string codename)
+        public ClaimCodenameResponse ClaimCodename(string codename)
         {
             return
-                await
-                    PostProtoPayload<Request, ClaimCodenameResponse>(RequestType.ClaimCodename,
-                        new ClaimCodenameMessage()
-                        {
-                            Codename = codename
-                        });
+                PostProtoPayload<Request, ClaimCodenameResponse>(RequestType.ClaimCodename,
+                new ClaimCodenameMessage() {
+                    Codename = codename
+                });
         }
 
-        public async Task<CheckCodenameAvailableResponse> CheckCodenameAvailable(string codename)
+        public EchoResponse SendEcho()
         {
-            return
-                await
-                    PostProtoPayload<Request, CheckCodenameAvailableResponse>(RequestType.CheckCodenameAvailable,
-                        new CheckCodenameAvailableMessage()
-                        {
-                            Codename = codename
-                        });
+            return PostProtoPayload<Request, EchoResponse>(RequestType.Echo, new EchoMessage());
         }
 
-        public async Task<GetSuggestedCodenamesResponse> GetSuggestedCodenames()
+        public async Task<EncounterTutorialCompleteResponse> MarkTutorialComplete(
+            RepeatedField<TutorialState> toComplete)
         {
-            return await PostProtoPayload<Request, GetSuggestedCodenamesResponse>(RequestType.GetSuggestedCodenames, new GetSuggestedCodenamesMessage());
+            var request = new Request
+            {
+                RequestType = RequestType.MarkTutorialComplete,
+                RequestMessage = ((IMessage)new MarkTutorialCompleteMessage
+                {
+                    SendMarketingEmails = false,
+                    SendPushNotifications = false,
+                    TutorialsCompleted = { toComplete }
+                }).ToByteString()
+            };
+            return await PostProtoPayloadCommonR<Request, EncounterTutorialCompleteResponse>(request).ConfigureAwait(false);
         }
-
-        public async Task<EchoResponse> SendEcho()
+        
+        public async Task<EncounterTutorialCompleteResponse> AceptLegalScreen()
         {
-            return await PostProtoPayload<Request, EchoResponse>(RequestType.Echo, new EchoMessage());
-        }
+            EncounterTutorialCompleteResponse res = await MarkTutorialComplete(new RepeatedField<TutorialState>() {
+                TutorialState.LegalScreen
+            }).ConfigureAwait(false);
 
-        public async Task<EncounterTutorialCompleteResponse> MarkTutorialComplete()
-        {
-            return await PostProtoPayload<Request, EncounterTutorialCompleteResponse>(RequestType.MarkTutorialComplete, new MarkTutorialCompleteMessage());
+            return res;
         }
     }
 }

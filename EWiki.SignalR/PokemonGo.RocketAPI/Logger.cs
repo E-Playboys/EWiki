@@ -1,108 +1,126 @@
-﻿using PokemonGo.RocketAPI.Logging;
+﻿/*
+ * Created by SharpDevelop.
+ * User: Xelwon
+ * Date: 10/01/2017
+ * Time: 23:56
+ * 
+ * To change this template use Tools | Options | Coding | Edit Standard Headers.
+ */
+/* All function used in this project
+        public static void Error(string str){}
+        public static void ColoredConsoleWrite(ConsoleColor color, string text, LogLevel level = LogLevel.Info){}
+        public static void Write( string text, LogLevel level = LogLevel.Info){}
+        public static void AddLog(string str){}*/ 
 using System;
 using System.IO;
-using Microsoft.AspNet.SignalR;
-using Newtonsoft.Json;
-using POGOProtos.Enums;
-using POGOProtos.Inventory.Item;
+using PokemonGo.RocketAPI.Logging;
 
 namespace PokemonGo.RocketAPI
 {
-	/// <summary>
-	/// Generic logger which can be used across the projects.
-	/// Logger should be set to properly log.
-	/// </summary>
-	
-	public static class Logger
-	{
-        public static string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Configs");
-        public static string log = Path.Combine(path, "log.txt");
-        private static ILogger logger;
-
-		/// <summary>
-		/// Set the logger. All future requests to <see cref="Write(string, LogLevel)"/> will use that logger, any old will be unset.
-		/// </summary>
-		/// <param name="logger"></param>
-		public static void SetLogger(ILogger logger)
-		{
-			Logger.logger = logger;
-		}
-
-		/// <summary>
-		/// Log a specific message to the logger setup by <see cref="SetLogger(ILogger)"/> .
-		/// </summary>
-		/// <param name="message">The message to log.</param>
-		/// <param name="level">Optional level to log. Default <see cref="LogLevel.Info"/>.</param>
-		public static void Write(string message, LogLevel level = LogLevel.Info)
-		{
-			if (logger == null)
-				return;
-			logger.Write(message, level);
-            AddLog(message);
-		}
-
-        public static void ColoredConsoleWrite(ConsoleColor color, string text, LogLevel level = LogLevel.Info, string connectionId = null, Hub hub = null)
-        {
-            hub?.Clients.Client(connectionId).GetMessage(JsonConvert.SerializeObject(new
-            {
-                Color = color.ToString(),
-                Content = text,
-                CreatedDate = DateTime.Now,
-                LogLevel = level
-            }));
-            ConsoleColor originalColor = Console.ForegroundColor;
-            Console.ForegroundColor = color;
-            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] "+ text);
-            Console.ForegroundColor = originalColor;
-            AddLog(text);
-        }
-
-        public static void Error(string text, string connectionId = null, Hub hub = null)
-        {
-            ColoredConsoleWrite(ConsoleColor.Red, text, LogLevel.Error, connectionId, hub);
-        }
-
-        public static void AddLog(string line)
-        { 
-            if (!File.Exists(log))
-            {
-                File.Create(log);
-            } 
-            try
-            {
-                // here you know that the file exists
-                TextWriter tw = new StreamWriter(log, true); //  we need to add a new line (aka. i am the brain)
-                tw.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] " + line); 
-                tw.Close();
-            } catch (Exception)
-            {
-                // Probably used by other process error
+    public enum LogLevel
+    {
+        None = 0,
+        Info = 1,
+        Warning = 2,
+        Error = 3,
+        Debug = 4
+    }
+    public static class Logger
+    {
+        public static int type = 0;
+        public static string message;
+        public static ConsoleColor color;
+        
+        public static LogLevel SelectedLevel {
+            get {
+                if (type == 0)
+                    return LoggerC.SelectedLevel;
+                if (type == 1)
+                    return LoggerPanel.SelectedLevel;
+                return LogLevel.None;
+            }
+            set {
+                if (type == 0)
+                    LoggerC.SelectedLevel = value;
+                if (type == 1)
+                    LoggerPanel.SelectedLevel = value; 
             }
         }
-    }
+            
+        public static void ExceptionInfo(string line)
+        {
+            if (type == 0) {
+                LoggerC.ColoredConsoleWrite(ConsoleColor.Red, "Ignore this: sending exception information to log file.");
+                LoggerC.AddLog(line);
+            }
+            if (type == 1) {
+                LoggerPanel.ColoredConsoleWrite(ConsoleColor.Red, "Ignore this: sending exception information to log file.");
+                LoggerPanel.AddLog(line);
+            }
+                
+        }
+        public static void Info(string str)
+        {
+            if (type == 0)
+                LoggerC.Info(str);
+            if (type == 1)
+                LoggerPanel.Info(str);
+        }
+        public static void Warning(string str)
+        {
+            if (type == 0)
+                LoggerC.Warning(str);
+            if (type == 1)
+                LoggerPanel.Warning(str);
+        }
+        public static void Error(string str)
+        {
+            if (type == 0)
+                LoggerC.Error(str);
+            if (type == 1)
+                LoggerPanel.Error(str);
+        }
+        public static void Debug(string str)
+        {
+            if (type == 0)
+                LoggerC.Debug(str);
+            if (type == 1)
+                LoggerPanel.Debug(str);
+        }
+        public static void ColoredConsoleWrite(ConsoleColor color, string line, LogLevel level = LogLevel.Info)
+        {
+            if (type == 0)
+                LoggerC.ColoredConsoleWrite(color, line, level);
+            if (type == 1)
+                LoggerPanel.ColoredConsoleWrite(color, line, level);
+        }
+        public static void Write(string line, LogLevel level = LogLevel.Info)
+        {
+            if (type == 0)
+                LoggerC.Write(line, level);
+            if (type == 1)
+                LoggerPanel.Write(line, level);
+        }
+        
+        public static void AddLog(string line)
+        {
+            if (type == 0)
+                LoggerC.AddLog(line);
+            if (type == 1)
+                LoggerPanel.AddLog(line);
+        }
 
-    public enum LogLevel
-	{
-		None = 0,
-		Error = 1,
-		Warning = 2,
-		Info = 3,
-		Debug = 4,
-        Failed = 5,
-        Success = 6
-	}
-
-    public class MessageInfos
-    {
-        public PokemonId PokemonId { get; set; }
-        public int CP { get; set; }
-        public double IV { get; set; }
-        public double Probability { get; set; }
-        public int XP { get; set; }
-        public ItemId ItemId { get; set; }
-        public int BerryCount { get; set; }
-        public string ErrorMessage { get; set; }
-        public string Move1 { get; set; }
-        public string Move2 { get; set; }
+        public static void Rename()
+        {
+             string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Configs");
+             string log = Path.Combine(path, "log.txt");
+             string newlog = Path.Combine(path, "log0.txt");
+             int i = 0;
+             while (File.Exists(newlog)) {
+                 i++;
+                 newlog = Path.Combine(path, $"log{i}.txt");
+             }
+             File.Move(log, newlog);
+        }
     }
 }

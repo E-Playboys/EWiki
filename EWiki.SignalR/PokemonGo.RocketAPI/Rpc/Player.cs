@@ -1,101 +1,65 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Google.Protobuf;
-using PokemonGo.RocketAPI.Extensions;
-using PokemonGo.RocketAPI.Helpers;
-using POGOProtos.Data.Player;
+﻿using POGOProtos.Data.Player;
 using POGOProtos.Enums;
 using POGOProtos.Networking.Requests;
 using POGOProtos.Networking.Requests.Messages;
 using POGOProtos.Networking.Responses;
-using System.IO;
+using PokemonGo.RocketAPI.Helpers;
+using System.Threading.Tasks;
 
 namespace PokemonGo.RocketAPI.Rpc
 {
     public class Player : BaseRpc
     {
+        public GetPlayerResponse PlayerResponse {
+            get;
+            set;
+        }
+
         public Player(Client client) : base(client)
         {
-            _client = client;
+            Client = client;
         }
 
-        public async Task<PlayerUpdateResponse> UpdatePlayerLocation(double latitude, double longitude, double altitude)
+        public GetPlayerResponse GetPlayer()
         {
-            SetCoordinates(latitude, longitude, altitude);
-            var message = new PlayerUpdateMessage
-            {
-                Latitude = _client.CurrentLatitude,
-                Longitude = _client.CurrentLongitude
-            };
-
-            var updatePlayerLocationRequestEnvelope = RequestBuilder.GetRequestEnvelope(
-                new Request
-                {
-                    RequestType = RequestType.PlayerUpdate,
-                    RequestMessage = message.ToByteString()
-                });
-
-            return await PostProtoPayload<Request, PlayerUpdateResponse>(updatePlayerLocationRequestEnvelope);
-        }
-
-        internal void SetCoordinates(double lat, double lng, double altitude)
-        {
-            _client.CurrentLatitude = lat;
-            _client.CurrentLongitude = lng;
-            _client.CurrentAltitude = altitude;
-            SaveLatLng(lat, lng);
-        }
-
-        public void SaveLatLng(double lat, double lng)
-        {
-            try {
-                string latlng = lat.ToString() + ":" + lng.ToString();
-                File.WriteAllText(Directory.GetCurrentDirectory() + "\\Configs\\LastCoords.txt", latlng);
-            } catch (Exception)
-            {
-
+            var ret = PostProtoPayload<Request, GetPlayerResponse>(RequestType.GetPlayer, new GetPlayerMessage());
+            if (ret!=null){
+                CommonRequest.ProcessGetPlayerResponse(Client,ret);
             }
-         }
-        
-        public async Task<GetPlayerResponse> GetPlayer()
-        {
-            return await PostProtoPayload<Request, GetPlayerResponse>(RequestType.GetPlayer, new GetPlayerMessage());
+            return ret;
         }
 
-        public async Task<GetPlayerProfileResponse> GetPlayerProfile(string playerName)
+        public GetPlayerProfileResponse GetPlayerProfile(string playerName)
         {
-            return await PostProtoPayload<Request, GetPlayerProfileResponse>(RequestType.GetPlayerProfile, new GetPlayerProfileMessage()
+            return  PostProtoPayload<Request, GetPlayerProfileResponse>(RequestType.GetPlayerProfile, new GetPlayerProfileMessage()
             {
                 PlayerName = playerName
             });
         }
 
-        public async Task<CheckAwardedBadgesResponse> GetNewlyAwardedBadges()
+        public CheckAwardedBadgesResponse GetNewlyAwardedBadges()
         {
-            return await PostProtoPayload<Request, CheckAwardedBadgesResponse>(RequestType.CheckAwardedBadges, new CheckAwardedBadgesMessage());
+            return  PostProtoPayload<Request, CheckAwardedBadgesResponse>(RequestType.CheckAwardedBadges, new CheckAwardedBadgesMessage());
         }
 
-        public async Task<CollectDailyBonusResponse> CollectDailyBonus()
+        public CollectDailyBonusResponse CollectDailyBonus()
         {
-            return await PostProtoPayload<Request, CollectDailyBonusResponse>(RequestType.CollectDailyBonus, new CollectDailyBonusMessage());
+            return  PostProtoPayload<Request, CollectDailyBonusResponse>(RequestType.CollectDailyBonus, new CollectDailyBonusMessage());
         }
 
-        public async Task<CollectDailyDefenderBonusResponse> CollectDailyDefenderBonus()
+        public CollectDailyDefenderBonusResponse CollectDailyDefenderBonus()
         {
-            return await PostProtoPayload<Request, CollectDailyDefenderBonusResponse>(RequestType.CollectDailyDefenderBonus, new CollectDailyDefenderBonusMessage());
+            return PostProtoPayloadCommonR<Request, CollectDailyDefenderBonusResponse>(RequestType.CollectDailyDefenderBonus, new CollectDailyDefenderBonusMessage()).Result;
         }
 
-        public async Task<EquipBadgeResponse> EquipBadge(BadgeType type)
+        public EquipBadgeResponse EquipBadge(BadgeType type)
         {
-            return await PostProtoPayload<Request, EquipBadgeResponse>(RequestType.EquipBadge, new EquipBadgeMessage() { BadgeType = type });
+            return PostProtoPayload<Request, EquipBadgeResponse>(RequestType.EquipBadge, new EquipBadgeMessage() { BadgeType = type });
         }
 
-        public async Task<LevelUpRewardsResponse> GetLevelUpRewards(int level)
+        public LevelUpRewardsResponse GetLevelUpRewards(int level)
         {
-            return await PostProtoPayload<Request, LevelUpRewardsResponse>(RequestType.LevelUpRewards, new LevelUpRewardsMessage()
+            return  PostProtoPayload<Request, LevelUpRewardsResponse>(RequestType.LevelUpRewards, new LevelUpRewardsMessage()
             {
                 Level = level
             });
@@ -103,26 +67,38 @@ namespace PokemonGo.RocketAPI.Rpc
 
         public async Task<SetAvatarResponse> SetAvatar(PlayerAvatar playerAvatar)
         {
-            return await PostProtoPayload<Request, SetAvatarResponse>(RequestType.SetAvatar, new SetAvatarMessage()
+            return await PostProtoPayloadCommonR<Request, SetAvatarResponse>(RequestType.SetAvatar, new SetAvatarMessage()
             {
                 PlayerAvatar = playerAvatar
-            });
+            }).ConfigureAwait(false);
         }
 
-        public async Task<SetContactSettingsResponse> SetContactSetting(ContactSettings contactSettings)
+        public SetContactSettingsResponse SetContactSetting(ContactSettings contactSettings)
         {
-            return await PostProtoPayload<Request, SetContactSettingsResponse>(RequestType.SetContactSettings, new SetContactSettingsMessage()
+            return  PostProtoPayload<Request, SetContactSettingsResponse>(RequestType.SetContactSettings, new SetContactSettingsMessage()
             {
                 ContactSettings = contactSettings
             });
         }
 
-        public async Task<SetPlayerTeamResponse> SetPlayerTeam(TeamColor teamColor)
+        public SetPlayerTeamResponse SetPlayerTeam(TeamColor teamColor)
         {
-            return await PostProtoPayload<Request, SetPlayerTeamResponse>(RequestType.SetPlayerTeam, new SetPlayerTeamMessage()
+            return  PostProtoPayload<Request, SetPlayerTeamResponse>(RequestType.SetPlayerTeam, new SetPlayerTeamMessage()
             {
                 Team = teamColor
             });
+        }
+
+        public VerifyChallengeResponse VerifyChallenge(string token)
+        {
+            return  PostProtoPayload<Request, VerifyChallengeResponse>(RequestType.VerifyChallenge, CommonRequest.GetVerifyChallenge(token));
+        }
+
+        public void SetCoordinates(double latitude, double longitude, double altitude)
+        {
+            Client.CurrentLatitude = latitude;
+            Client.CurrentLongitude = longitude;
+            Client.CurrentAltitude = altitude;
         }
     }
 }

@@ -11,7 +11,7 @@ namespace EWiki.XF.Service
 #if DEBUG
         public const string WEB_API_URL = "http://esquare.io/api/";
 #else
-        public const string WebApiUrl = "";
+        public const string WEB_API_URL = "http://esquare.io/api/";
 #endif
     }
 }

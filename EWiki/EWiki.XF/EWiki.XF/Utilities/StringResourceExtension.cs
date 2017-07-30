@@ -29,7 +29,7 @@ namespace EWiki.XF.Utilities
                 throw new ArgumentException(
                     $"Key '{Text}' was not found in resources for culture '{App.CurrentCulture.Name}'.", nameof(Text));
 #else
-                translation = Text; // HACK: returns the key, which GETS DISPLAYED TO THE USER
+                 return Text; // HACK: returns the key, which GETS DISPLAYED TO THE USER
 #endif
             }
             return value;

@@ -1,29 +1,27 @@
 using System;
 using System.Collections.Generic;
+using System.Device.Location;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Globalization;
 
+using POGOProtos.Enums;
+using POGOProtos.Inventory.Item;
+using PokeMaster.Logic.Functions;
+using PokemonGo.RocketAPI;
 using Telegram.Bot.Args;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.InlineQueryResults;
-using Telegram.Bot.Types.InputMessageContents;
 using Telegram.Bot.Types.ReplyMarkups;
 
-using PokemonGo.RocketAPI.Enums;
-using PokemonGo.RocketAPI.Extensions;
-using PokemonGo.RocketAPI.Logic.Utils;
-using PokemonGo.RocketAPI.Exceptions;
-using PokemonGo.RocketAPI.Logic;
+using PokeMaster.Logic.Utils;
 using PokemonGo.RocketAPI.Helpers;
 
-using PokemonGo.RocketAPI.Logic.Translation;
+using PokeMaster.Logic.Translation;
 using PokemonGo.RocketAPI.Rpc;
 using POGOProtos.Data;
 
-namespace PokemonGo.RocketAPI.Logic.Utils
+namespace PokeMaster.Logic.Utils
 {
     public class TelegramUtil
     {
@@ -96,7 +94,9 @@ namespace PokemonGo.RocketAPI.Logic.Utils
                 {
                     _telegram.SendTextMessageAsync(_chatid, msg, replyMarkup: new ReplyKeyboardHide());
                 }
-            } catch (Exception) { }
+            } catch (Exception ex1) {
+                Logger.ExceptionInfo(ex1.ToString());
+            }
         }
 
         #region private properties
@@ -104,11 +104,11 @@ namespace PokemonGo.RocketAPI.Logic.Utils
         private Inventory _inventory;
 
         private Telegram.Bot.TelegramBotClient _telegram;
-        private readonly ISettings _clientSettings;
+        private readonly PokeMaster.Logic.Shared.ISettings _botSettings;
 
         private long _chatid = -1;
         private bool _livestats = false;
-        private bool _informations = false;
+        private const bool _informations = false;
 
         /// <summary>
         /// defines what to do
@@ -135,7 +135,12 @@ namespace PokemonGo.RocketAPI.Logic.Utils
             /// <summary>
             /// Forces Evolve
             /// </summary>
-            RUN_FORCEEVOLVE
+            RUN_FORCEEVOLVE,
+            RUN_SNIPE,
+            FORCE_STOP,
+            TRANSFER_POKEMON,
+            GET_ITEMSLIST,
+            DROP_ITEM
         }
 
         /// <summary>
@@ -148,15 +153,20 @@ namespace PokemonGo.RocketAPI.Logic.Utils
             { @"/livestats", TelegramUtilTask.SWITCH_LIVESTATS },
             { @"/information", TelegramUtilTask.SWITCH_INFORMATION },
             { @"/forceevolve", TelegramUtilTask.RUN_FORCEEVOLVE },
+            { @"/snipe", TelegramUtilTask.RUN_SNIPE },
+            { @"/stopbot", TelegramUtilTask.FORCE_STOP },
+            { @"/transfer", TelegramUtilTask.TRANSFER_POKEMON },
+            { @"/items", TelegramUtilTask.GET_ITEMSLIST },
+            { @"/drop", TelegramUtilTask.DROP_ITEM },
         };
         #endregion
 
-        public TelegramUtil(Client client, Telegram.Bot.TelegramBotClient telegram, ISettings settings, Inventory inv)
+        public TelegramUtil(Client client, Telegram.Bot.TelegramBotClient telegram, PokeMaster.Logic.Shared.ISettings settings, Inventory inv)
         {
             instance = this;
             _client = client;
             _telegram = telegram;
-            _clientSettings = settings;
+            _botSettings = settings;
             _inventory = inv;
 
             Array values = Enum.GetValues(typeof(TelegramUtilInformationTopics));
@@ -175,7 +185,7 @@ namespace PokemonGo.RocketAPI.Logic.Utils
             return _telegram;
         }
 
-        public async void DoLiveStats(ISettings settings)
+        public async void DoLiveStats(PokeMaster.Logic.Shared.ISettings settings)
         {
             try
             {
@@ -183,8 +193,8 @@ namespace PokemonGo.RocketAPI.Logic.Utils
                 if (_chatid != -1 && _livestats)
                 {
                     var usage = "";
-                    var inventory = await _client.Inventory.GetInventory();
-                    var profil = await _client.Player.GetPlayer();
+                    var inventory =  _client.Inventory.GetInventory();
+                    var profil =  _client.Player.GetPlayer();
                     var stats = inventory.InventoryDelta.InventoryItems.Select(i => i.InventoryItemData.PlayerStats).ToArray();
                     foreach (var c in stats)
                     {
@@ -207,17 +217,17 @@ namespace PokemonGo.RocketAPI.Logic.Utils
                         }
                     }
 
-                    await _telegram.SendTextMessageAsync(_chatid, usage, replyMarkup: new ReplyKeyboardHide());
+                    await _telegram.SendTextMessageAsync(_chatid, usage, replyMarkup: new ReplyKeyboardHide()).ConfigureAwait(false);
                 }
-                await System.Threading.Tasks.Task.Delay(settings.TelegramLiveStatsDelay);
+                await System.Threading.Tasks.Task.Delay(settings.TelegramLiveStatsDelay).ConfigureAwait(false);
                 DoLiveStats(settings);
-            } catch (Exception)
-            {
-
+            } catch (Exception ex1){
+                Logger.ExceptionInfo(ex1.ToString());
             }
         }
 
-         int level;
+      
+        int level;
         
         public async void DoInformation()
         {
@@ -226,28 +236,27 @@ namespace PokemonGo.RocketAPI.Logic.Utils
                 if (_chatid != -1 && _informations)
                 {
                     int current = 0;
-                    var inventory = await _client.Inventory.GetInventory();
-                    var profil = await _client.Player.GetPlayer();
-                    var stats = await _client.Inventory.GetPlayerStats();
+                    var stats =  _client.Inventory.GetPlayerStats();
 
                     current = stats.First().Level;
                     
                     if (current != level)
                     {
                         level = current;
-                        string nick = profil.PlayerData.Username;
+                        string nick = _client.Player.GetPlayer().PlayerData.Username;
 
                         sendInformationText(TelegramUtilInformationTopics.Levelup, nick, level);
 
                     }
                 }
-                await System.Threading.Tasks.Task.Delay(5000);
+                await System.Threading.Tasks.Task.Delay(5000).ConfigureAwait(false);
                 DoInformation();
-            } catch (Exception)
-            {
-
+            } catch (Exception ex1){
+                Logger.ExceptionInfo(ex1.ToString());
             }
         }
+
+
         
         public async void BotOnMessageReceived(object sender, MessageEventArgs messageEventArgs)
         {
@@ -258,37 +267,41 @@ namespace PokemonGo.RocketAPI.Logic.Utils
             try
             {
                 Logger.ColoredConsoleWrite(ConsoleColor.Red, "[TelegramAPI] Got Request from " + message.From.Username + " | " + message.Text);
-                string username = _clientSettings.TelegramName;
+                string username = _botSettings.TelegramName;
                 string telegramAnswer = string.Empty;
                 
                 if (username != message.From.Username)
                 {
                     using (System.IO.Stream stream = new System.IO.MemoryStream())
                     {
-                        Properties.Resources.norights.Save(stream, System.Drawing.Imaging.ImageFormat.Jpeg);
+                        PokemonGo.RocketAPI.Logic.Properties.Resources.norights.Save(stream, System.Drawing.Imaging.ImageFormat.Jpeg);
                         stream.Position = 0;
-                        await _telegram.SendPhotoAsync(_chatid, new FileToSend("norights.jpg", stream), replyMarkup: new ReplyKeyboardHide());
+                        await _telegram.SendPhotoAsync(_chatid, new FileToSend("norights.jpg", stream), replyMarkup: new ReplyKeyboardHide()).ConfigureAwait(false);
                     }
                     return;
                 }
 
                 // [0]-Commando; [1+]-Argument
-                string[] textCMD = message.Text.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                var msgText = message.Text;
+                string[] textCMD = msgText.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                 TelegramUtilTask cmd = getTask(textCMD[0]);
                 switch (cmd)
                 {
                     case TelegramUtilTask.UNKNOWN:
-                        telegramAnswer = string.Format("Usage:\r\n{0}\r\n{1}\r\n{2}\r\n{3}\r\n{4}",
+                        telegramAnswer = string.Format("Usage:\r\n{0}\r\n{1}\r\n{2}\r\n{3}\r\n{4}\r\n{5}\r\n{6}\r\n{7}\r\n{8}\r\n{9}",
                             @"/stats - Get Current Stats",
                             @"/livestats - Enable/Disable Live Stats",
                             @"/information <topic> - Enable/Disable Information topics",
                             @"/top <HowMany?> - Outputs Top (?) Pokemons",
-                            @"/forceevolve - Forces Evolve");
+                            @"/transfer pokemon cp - transfer pokemons that matches with the given data",
+                            @"/items  - Outputs Items List",
+                            @"/drop item amount  - Throws the amount of items given",
+                            @"/forceevolve - Forces Evolve",
+                            @"/snipe pokemon latitude, longitude - snipe desired pokemon",
+                            @"/stopbot - stop running bot");
                         break;
                     case TelegramUtilTask.GET_STATS:
-                        var inventory = await _client.Inventory.GetInventory();
-                        var profil = await _client.Player.GetPlayer();
-                        var ps = await _client.Inventory.GetPlayerStats(); 
+                        var ps =  _client.Inventory.GetPlayerStats(); 
 
                         int l = ps.First().Level; 
                         long expneeded = ((ps.First().NextLevelXp - ps.First().PrevLevelXp) - StringUtils.getExpDiff(ps.First().Level));
@@ -299,22 +312,18 @@ namespace PokemonGo.RocketAPI.Logic.Utils
                         string curlochtml = "https://www.google.com/maps/search/" + curloc + "/";
                         double shortenLng = Math.Round(_client.CurrentLongitude, 3);
                         double shortenLat = Math.Round(_client.CurrentLatitude, 3);
-                        string pokemap = shortenLat + ";" + shortenLng;
-                        pokemap = pokemap.Replace(",", ".").Replace(";", ",");
-                        string pokevishtml = "https://skiplagged.com/pokemon/#" + pokemap +",14";
-                        telegramAnswer +=
-                            "\nNickname: " + profil.PlayerData.Username 
-                            + "\nLevel: " + ps.First().Level
-                            + "\nEXP Needed: " + ((ps.First().NextLevelXp - ps.First().PrevLevelXp) - StringUtils.getExpDiff(ps.First().Level))
-                            + $"\nCurrent EXP: {curexp} ({Math.Round(curexppercent)}%)"
-                            + "\nEXP to Level up: " + ((ps.First().NextLevelXp) - (ps.First().Experience))
-                            + "\nKM walked: " + ps.First().KmWalked
-                            + "\nPokeStops visited: " + ps.First().PokeStopVisits
-                            + "\nStardust: " + profil.PlayerData.Currencies.ToArray()[1].Amount
-                            + "\nPokemons: " + await _client.Inventory.getPokemonCount() + "/" + profil.PlayerData.MaxPokemonStorage
-                            + "\nItems: " + await _client.Inventory.getInventoryCount() + " / " + profil.PlayerData.MaxItemStorage
-                            + "\nCurentLocation:\n" + curlochtml
-                            + "\nPokevision:\n" + pokevishtml; 
+                        var player = _client.Player.GetPlayer();
+                        telegramAnswer += "\nNickname: " + player.PlayerData.Username;
+                        telegramAnswer += "\nLevel: " + ps.First().Level;
+                        telegramAnswer += "\nEXP Needed: " + ((ps.First().NextLevelXp - ps.First().PrevLevelXp) - StringUtils.getExpDiff(ps.First().Level));
+                        telegramAnswer += $"\nCurrent EXP: {curexp} ({Math.Round(curexppercent)}%)";
+                        telegramAnswer += "\nEXP to Level up: " + ((ps.First().NextLevelXp) - (ps.First().Experience));
+                        telegramAnswer += "\nKM walked: " + ps.First().KmWalked;
+                        telegramAnswer += "\nPokeStops visited: " + ps.First().PokeStopVisits;
+                        telegramAnswer += "\nStardust: " + player.PlayerData.Currencies.ToArray()[1].Amount;
+                        telegramAnswer += "\nPokemons: " + ( _client.Inventory.GetPokemons()).Count() + "/" + player.PlayerData.MaxPokemonStorage;
+                        telegramAnswer += "\nItems: " +  _client.Inventory.GetItems().Count() + " / " + player.PlayerData.MaxItemStorage;
+                        telegramAnswer += "\nCurentLocation:\n" + curlochtml;
                         break;
                     case TelegramUtilTask.GET_TOPLIST:
                         int shows = 10;
@@ -324,19 +333,18 @@ namespace PokemonGo.RocketAPI.Logic.Utils
                             shows = 10; //TryParse error will reset to 0
                         }
                         telegramAnswer += "Showing " + shows + " Pokemons...\nSorting...";
-                        await _telegram.SendTextMessageAsync(_chatid, telegramAnswer, replyMarkup: new ReplyKeyboardHide());
+                        await _telegram.SendTextMessageAsync(_chatid, telegramAnswer, replyMarkup: new ReplyKeyboardHide()).ConfigureAwait(false);
 
-                        var myPokemons = await _inventory.GetPokemons();
+                        var myPokemons =  _client.Inventory.GetPokemons();
                         myPokemons = myPokemons.OrderByDescending(x => x.Cp);
-                        var profile = await _client.Player.GetPlayer();
-                        telegramAnswer = $"Top {shows} Pokemons of {profile.PlayerData.Username}:";
+                        var PogoUsername = _client.Player.GetPlayer().PlayerData.Username;
+                        telegramAnswer = $"Top {shows} Pokemons of {PogoUsername}:";
 
                         IEnumerable<PokemonData> topPokemon = myPokemons.Take(shows);
                         foreach (PokemonData pokemon in topPokemon)
                         {
-                            telegramAnswer += string.Format("\n{0} ({1})  |  CP: {2} ({3}% perfect)",
+                            telegramAnswer += string.Format("\n{0} |  CP: {1} ({2}% perfect)",
                                 pokemon.PokemonId,
-                                StringUtils.getPokemonNameGer(pokemon.PokemonId),
                                 pokemon.Cp,
                                 Math.Round(PokemonInfo.CalculatePokemonPerfection(pokemon), 2));
                         }
@@ -404,37 +412,61 @@ namespace PokemonGo.RocketAPI.Logic.Utils
 
                         break;
                     case TelegramUtilTask.RUN_FORCEEVOLVE:
-                        IEnumerable<PokemonData> pokemonToEvolve = await _inventory.GetPokemonToEvolve(null);
+                        IEnumerable<PokemonData> pokemonToEvolve =  Setout.GetPokemonToEvolve(true);
                         if (pokemonToEvolve.Count() > 3)
                         {
-                            await _inventory.UseLuckyEgg(_client);
+                             Setout.UseLuckyEgg(_client);
                         }
                         foreach (PokemonData pokemon in pokemonToEvolve)
                         {
-                            if (_clientSettings.pokemonsToEvolve.Contains(pokemon.PokemonId))
+                            if (_botSettings.pokemonsToEvolve.Contains(pokemon.PokemonId))
                             {
-                                var evolvePokemonOutProto = await _client.Inventory.EvolvePokemon((ulong)pokemon.Id);
+                                var evolvePokemonOutProto =  _client.Inventory.EvolvePokemon((ulong)pokemon.Id);
                                 if (evolvePokemonOutProto.Result == POGOProtos.Networking.Responses.EvolvePokemonResponse.Types.Result.Success)
                                 {
-                                    await _telegram.SendTextMessageAsync(_chatid, $"Evolved {pokemon.PokemonId} successfully for {evolvePokemonOutProto.ExperienceAwarded}xp", replyMarkup: new ReplyKeyboardHide());
+                                    await _telegram.SendTextMessageAsync(_chatid, $"Evolved {pokemon.PokemonId} successfully for {evolvePokemonOutProto.ExperienceAwarded}xp", replyMarkup: new ReplyKeyboardHide()).ConfigureAwait(false);
                                 }
                                 else
                                 {
-                                    await _telegram.SendTextMessageAsync(_chatid, $"Failed to evolve {pokemon.PokemonId}. EvolvePokemonOutProto.Result was {evolvePokemonOutProto.Result}, stopping evolving {pokemon.PokemonId}", replyMarkup: new ReplyKeyboardHide());
+                                    await _telegram.SendTextMessageAsync(_chatid, $"Failed to evolve {pokemon.PokemonId}. EvolvePokemonOutProto.Result was {evolvePokemonOutProto.Result}, stopping evolving {pokemon.PokemonId}", replyMarkup: new ReplyKeyboardHide()).ConfigureAwait(false);
                                 }
-                                await RandomHelper.RandomDelay(1000, 2000);
+                                RandomHelper.RandomSleep(2000);
                             }
                         }
                         telegramAnswer = "Done.";
                         break;
+                    case TelegramUtilTask.RUN_SNIPE:
+                        telegramAnswer = ProcessSnipeCommand(msgText.Replace(textCMD[0],"").Trim());
+                        break;
+                    case TelegramUtilTask.FORCE_STOP:
+                        var secs = 1;
+                        if (textCMD.Length > 1)
+                            int.TryParse(textCMD[1].Trim(),out secs);
+                        telegramAnswer = $"Stopping bot in {secs} seconds";
+                        await _telegram.SendTextMessageAsync(_chatid, telegramAnswer, replyMarkup: new ReplyKeyboardHide()).ConfigureAwait(false);
+                        _telegram.StopReceiving();
+                        RandomHelper.RandomSleep(secs*1000);
+                        Environment.Exit(0);
+                        break;
+                    case TelegramUtilTask.TRANSFER_POKEMON:
+                        telegramAnswer = ProcessTransferPokemon(msgText.Replace(textCMD[0],"").Trim());
+                        break;
+                    case TelegramUtilTask.GET_ITEMSLIST:
+                        telegramAnswer = ProcessGetItemList();
+                        break;
+                    case TelegramUtilTask.DROP_ITEM:
+                        telegramAnswer = ProcessDropItem(msgText.Replace(textCMD[0],"").Trim());
+                        break;
                 }
 
-                await _telegram.SendTextMessageAsync(_chatid, telegramAnswer, replyMarkup: new ReplyKeyboardHide());
+                await _telegram.SendTextMessageAsync(_chatid, telegramAnswer, replyMarkup: new ReplyKeyboardHide()).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                if (ex is ApiRequestException)
-                    await _telegram.SendTextMessageAsync(_chatid, (ex as ApiRequestException).Message, replyMarkup: new ReplyKeyboardHide());
+                Logger.Debug(ex.ToString());
+                var apiRequestException = ex as ApiRequestException;
+                if (apiRequestException != null)
+                    await _telegram.SendTextMessageAsync(_chatid, apiRequestException.Message, replyMarkup: new ReplyKeyboardHide()).ConfigureAwait(false);
             }
         }
 
@@ -457,7 +489,97 @@ namespace PokemonGo.RocketAPI.Logic.Utils
 
         public async void BotOnCallbackQueryReceived(object sender, CallbackQueryEventArgs callbackQueryEventArgs)
         {
-            await _telegram.AnswerCallbackQueryAsync(callbackQueryEventArgs.CallbackQuery.Id, $"Received {callbackQueryEventArgs.CallbackQuery.Data}");
+            await _telegram.AnswerCallbackQueryAsync(callbackQueryEventArgs.CallbackQuery.Id, $"Received {callbackQueryEventArgs.CallbackQuery.Data}").ConfigureAwait(false);
         }
+
+        private string ProcessSnipeCommand(string txt)
+        {
+            var splt1 = txt.Split(' ');
+            if (splt1.Length < 2)
+                return "Pokemon or location cannot be read";
+            var splt2= splt1[1].Split(',');
+            if (splt2.Length < 2)
+                return "Location cannot be read";
+            var pokemon = getPokemonID(splt1[0]);
+            if (pokemon == PokemonId.Missingno)
+                return "Pokemon cannot be read";
+            var location = getLatLng(splt2[0],splt2[1]);
+            Sniper.SendToSnipe(pokemon,location);
+            return "Command sent succefully to the bot.";
+        }
+        
+        private GeoCoordinate getLatLng(string strlat,string strlng)
+        {
+            var lat = double.Parse(strlat.Trim(), CultureInfo.InvariantCulture);
+            var lng = double.Parse(strlng.Trim(), CultureInfo.InvariantCulture);
+            return new GeoCoordinate(lat, lng);
+        }
+
+        private PokemonId getPokemonID (string text){
+            var pokemons = Enum.GetNames(typeof(PokemonId));
+            var lowerText = text.ToLower();
+            var pokemonName = pokemons.LastOrDefault(p => lowerText.Contains(p.ToLower())) ?? PokemonId.Missingno.ToString();
+            if (pokemonName == PokemonId.Pidgeot.ToString()){
+                if (lowerText.Contains(PokemonId.Pidgeotto.ToString().ToLower()))
+                    pokemonName = PokemonId.Pidgeotto.ToString();
+            }
+            return (PokemonId)Enum.Parse(typeof(PokemonId), pokemonName);
+        }
+
+        string ProcessTransferPokemon(string txt)
+        {
+            var splt1 = txt.Split(' ');
+            if (splt1.Length < 2)
+                return "Pokemon or cp cannot be read";
+            var pokemon = getPokemonID(splt1[0]);
+            if (pokemon == PokemonId.Missingno)
+                return "Pokemon cannot be read";
+            var cp = 0;
+            int.TryParse(splt1[1].Trim(),out cp);
+            if (cp == 0)
+                return "CP cannot be read";
+            var pokemons = _client.Inventory.GetPokemons().Where(x=> x.PokemonId == pokemon && x.Cp ==cp);
+            var resp = "";
+            if (!pokemons.Any()){
+                resp = $"{pokemon} with cp={cp} not found";
+                return resp;
+            }
+            _client.Inventory.TransferPokemons(pokemons.Select(x => x.Id).ToList());
+            return "Command sent succefully to the bot.";
+        }
+
+        string ProcessGetItemList()
+        {
+            var result = "ITEMS:\n";
+            var items = _client.Inventory.GetItems();
+            foreach (var element in items) {
+                result += element.ItemId.ToString().Replace("Item","") + " : " + element.Count +"\n";
+            }
+            return result;
+        }
+
+        string ProcessDropItem(string txt)
+        {
+            var splt1 = txt.Split(' ');
+            if (splt1.Length < 2)
+                return "item or amount cannot be read";
+            var item = getItemID(splt1[0]);
+            if (item == ItemId.ItemUnknown)
+                return "item cannot be read";
+            var amount = 0;
+            int.TryParse(splt1[1].Trim(),out amount);
+            if (amount == 0)
+                return "amount cannot be read";
+            _client.Inventory.RecycleItem(item,amount).Wait();
+            return "Command sent succefully to the bot.";
+        }
+
+        private ItemId getItemID (string text){
+            var items = Enum.GetNames(typeof(ItemId));
+            var lowerText = text.ToLower();
+            var itemName = items.LastOrDefault(p => lowerText.Contains(p.ToLower())) ?? ItemId.ItemUnknown.ToString();
+            return (ItemId)Enum.Parse(typeof(ItemId), itemName);
+        }
+
     }
 }

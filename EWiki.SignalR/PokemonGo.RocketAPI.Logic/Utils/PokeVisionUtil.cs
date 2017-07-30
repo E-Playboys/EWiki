@@ -4,21 +4,22 @@ using System.Threading.Tasks;
 using System.Net.Http;
 using Newtonsoft.Json;
 using POGOProtos.Enums;
+using PokemonGo.RocketAPI.HttpClient;
 
-namespace PokemonGo.RocketAPI.Logic.Utils
+namespace PokeMaster.Logic.Utils
 {
     class PokeVisionUtil
     {
 
         private List<spottedPoke> _newSpotted;
         private List<spottedPoke> _alreadySpotted;
-        HttpClient.PokemonHttpClient _httpClient;
+        PokemonHttpClient _httpClient;
 
         public PokeVisionUtil()
         {
             _newSpotted = new List<spottedPoke>();
             _alreadySpotted = new List<spottedPoke>();
-            _httpClient = new HttpClient.PokemonHttpClient();
+            _httpClient = new PokemonHttpClient();
         }
 
 
@@ -30,9 +31,9 @@ namespace PokemonGo.RocketAPI.Logic.Utils
             double Lat10 = lat + 0.10;
             double Lon10 = lng + 0.10;
 
-            HttpResponseMessage response = await _httpClient.GetAsync("https://skiplagged.com/api/pokemon.php?bounds=" + lat.ToString().Replace(",", ".") + "," + lng.ToString().Replace(",", ".") + "," + Lat10.ToString().Replace(",", ".") + "," + Lon10.ToString().Replace(",", "."));
+            HttpResponseMessage response = await _httpClient.GetAsync("https://skiplagged.com/api/pokemon.php?bounds=" + lat.ToString().Replace(",", ".") + "," + lng.ToString().Replace(",", ".") + "," + Lat10.ToString().Replace(",", ".") + "," + Lon10.ToString().Replace(",", ".")).ConfigureAwait(false);
             HttpContent content = response.Content;
-            string result = await content.ReadAsStringAsync();
+            string result = await content.ReadAsStringAsync().ConfigureAwait(false);
 
             dynamic stuff = JsonConvert.DeserializeObject(result);
             try
