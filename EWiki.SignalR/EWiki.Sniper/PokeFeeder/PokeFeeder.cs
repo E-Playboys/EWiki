@@ -5,6 +5,7 @@ using Quobject.SocketIoClientDotNet.Client;
 using System.Globalization;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
+using POGOProtos.Enums;
 
 namespace EWiki.Sniper.PokeFeeder
 {

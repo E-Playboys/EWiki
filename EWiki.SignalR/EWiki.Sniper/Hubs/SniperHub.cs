@@ -1,16 +1,12 @@
 ﻿using System;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNet.SignalR;
 using Newtonsoft.Json;
 using PokemonGo.RocketAPI;
-using PokemonGo.RocketAPI.Enums;
-using PokemonGo.RocketAPI.Exceptions;
 using EWiki.Sniper.PokeFeeder;
 using System.Collections.Generic;
-using PokeMaster.Logic;
 using EWiki.SignalR.Hubs.Models;
-using System.Device.Location;
+using EWiki.Sniper;
 
 namespace EWiki.SignalR.Hubs
 {
@@ -78,59 +74,9 @@ namespace EWiki.SignalR.Hubs
         public async Task Snipe(SnipeRq snipeRq)
         {
             var connectionId = Context.ConnectionId;
-            Logic logic = null;
             await Task.Run(() =>
             {
-                if (string.IsNullOrWhiteSpace(snipeRq.UserName) || string.IsNullOrWhiteSpace(snipeRq.Password))
-                {
-                    Logger.Error("Please input UserName and Password.");
-                    return;
-                }
-
-                var settings = new Settings();
-
-                if (snipeRq.UserName.Contains("@gmail.com"))
-                {
-                    settings.AuthType = AuthType.Google;
-                }
-                else
-                {
-                    settings.AuthType = AuthType.Ptc;
-                }
-
-                settings.pFHashKey = "";
-                settings.Username = snipeRq.UserName;
-                settings.Password = snipeRq.Password;
-
-                try
-                {
-                    logic = new Logic(settings, new LogicInfoObservable());
-                }
-                catch (PtcOfflineException)
-                {
-                    Logger.Error("PTC Servers are probably down OR you credentials are wrong.");
-                    Logger.Error("Trying again in 20 seconds...");
-                    Thread.Sleep(20000);
-                    logic = new Logic(settings, new LogicInfoObservable());
-                }
-                catch (AccountNotVerifiedException)
-                {
-                    Logger.Error("Your PTC Account is not activated. Exiting in 10 Seconds.");
-                    Thread.Sleep(10000);
-                    Environment.Exit(0);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error($"Unhandled exception: {ex}");
-                    Logger.Error("Restarting in 20 Seconds.");
-                    Thread.Sleep(20000);
-                    logic = new Logic(settings, new LogicInfoObservable());
-                }
-                
-                logic.sniperLogic.Execute(snipeRq.PokemonId, new GeoCoordinate() {
-                    Latitude = snipeRq.Latitude,
-                    Longitude = snipeRq.Longitude
-                });
+                SniperFunc.Execute(snipeRq, connectionId);
             });
         }
     }

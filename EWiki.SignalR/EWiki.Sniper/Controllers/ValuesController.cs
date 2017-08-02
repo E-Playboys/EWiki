@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
+using EWiki.SignalR.Hubs;
+using EWiki.SignalR.Hubs.Models;
 
 namespace EWiki.Sniper.Controllers
 {
@@ -11,21 +13,9 @@ namespace EWiki.Sniper.Controllers
     {
         // GET api/values
         [HttpGet]
-        public IEnumerable<string> Get()
+        public IEnumerable<string> GetAsync()
         {
-            IWebDriver webDriver = new ChromeDriver();
-            webDriver.Url = "http://pokezz.com";
-            webDriver.Navigate();
-            var str = new List<string>();
-            var elements = webDriver.FindElements(By.ClassName("collection-item"));
-            foreach(var element in elements)
-            {
-                var name = element.FindElement(By.ClassName("avatar-text")).Text;
-                var location = element.FindElement(By.ClassName("title")).Text;
-                str.Add($"{name} - {location}");
-            }
-            
-            return str;
+            return new string[] { "Troy", "Lee" };
         }
 
         // GET api/values/5

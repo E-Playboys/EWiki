@@ -14,6 +14,8 @@ namespace PokemonGo.RocketAPI
 {
     public class Client : ICaptchaResponseHandler
     {
+        public string ClientId { get; set; }
+
         public event EventHandler<EventArgs> EvMakeTutorial;
         public Rpc.Login Login;
         public IHasher Hasher;
