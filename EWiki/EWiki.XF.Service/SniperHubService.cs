@@ -20,7 +20,7 @@ namespace EWiki.XF.Service
 
         public SniperHubService()
         {
-            _connection = new HubConnection("http://192.168.0.100:12190/");
+            _connection = new HubConnection("http://pokitapp.azurewebsites.net/");
             _proxy = _connection.CreateHubProxy("SniperHub");
         }
 

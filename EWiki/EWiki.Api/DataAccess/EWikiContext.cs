@@ -32,6 +32,8 @@ namespace EWiki.Api.DataAccess
         public DbSet<WikiImage> WikiImages { get; set; }
         public DbSet<WikiVideo> WikiVideos { get; set; }
         public DbSet<RoleSetting> RoleSettings { get; set; }
+        public DbSet<FeedInfo> FeedInfos { get; set; }
+        public DbSet<FeedChanel> FeedChanels { get; set; }
 
         public virtual int Commit()
         {

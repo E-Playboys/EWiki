@@ -10,4 +10,4 @@ var ewikiBD = angular.module('ewikibd', [
 
 var baseUrl = $('base').attr('href');
 var appBaseUrl = baseUrl + '/';
-var apiBaseUrl = 'http://localhost:2675/api/';
+var apiBaseUrl = appBaseUrl.replace('app', 'api');

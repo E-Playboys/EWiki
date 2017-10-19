@@ -9,7 +9,7 @@ namespace EWiki.XF.Service
     public class AppSettings
     {
 #if DEBUG
-        public const string WEB_API_URL = "http://esquare.io/api/";
+        public const string WEB_API_URL = "http://pokitappapi.azurewebsites.net/api/";
 #else
         public const string WEB_API_URL = "http://esquare.io/api/";
 #endif

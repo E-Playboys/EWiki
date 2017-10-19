@@ -9,11 +9,14 @@ using EWiki.Api.Models;
 using Microsoft.AspNetCore.Builder;
 using System;
 using System.Threading.Tasks;
+using Hangfire;
 
 namespace EWiki.Api
 {
     public partial class Startup
     {
+        private readonly string _connectionString;
+
         public Startup(IHostingEnvironment env)
         {
             var builder = new ConfigurationBuilder()
@@ -22,6 +25,7 @@ namespace EWiki.Api
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
                 .AddEnvironmentVariables();
             Configuration = builder.Build();
+            _connectionString = Configuration.GetConnectionString("DefaultConnection");
         }
 
         public IConfigurationRoot Configuration { get; }
@@ -50,6 +54,9 @@ namespace EWiki.Api
                                 .WithExposedHeaders());
             });
 
+            // Hangfire
+            services.AddHangfire(config => config.UseSqlServerStorage(_connectionString));
+
             // Add application services.
             services.AddSingleton<IDbFactory, DbFactory>();
 
@@ -63,6 +70,7 @@ namespace EWiki.Api
             services.AddSingleton<IPokedexRepository, PokedexRepository>();
             services.AddSingleton<IWikiImageRepository, WikiImageRepository>();
             services.AddSingleton<IUserRepository, UserRepository>();
+            services.AddSingleton<IFeedInfoRepository, FeedInfoRepository>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
